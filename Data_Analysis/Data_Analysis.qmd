@@ -1,0 +1,147 @@
+---
+title: "UNICEF Data Analysis with R"
+date: 2024-04-26
+format: html
+---
+
+## Introduction
+
+In the interconnected tapestry of global development, the plight of **children in developing countries** stands as a stark reminder of the **inequalities** that persist in our world today. While progress has been made on various fronts, **millions of children still grapple with the harsh realities of deprivation and malnutrition.**
+
+### Scatter Plot: GDP per Capita vs. Life Expectancy
+
+```{r}
+#| warning: false
+#| echo: false
+
+library(ggplot2)
+data <- read.csv('unicef_metadata (1).csv')
+data_complete <- na.omit(data[c('GDP.per.capita..constant.2015.US..', 'Life.expectancy.at.birth..total..years.')])
+
+ggplot(data_complete, aes(x=GDP.per.capita..constant.2015.US.., y=Life.expectancy.at.birth..total..years., color = GDP.per.capita..constant.2015.US.. )) +
+  geom_point() +
+  labs(title="GDP per Capita vs. Life Expectancy", x="GDP per Capita (constant 2015 US$)", y="Life Expectancy at Birth (years)") +
+  theme_minimal()
+```
+
+## Some considerations:
+
+The **positive correlation between GDP per capita and life expectancy** underscores the intricate link between socioeconomic prosperity and public health outcomes. Wealthier nations often possess the financial resources to invest in robust healthcare systems, disease prevention initiatives, and infrastructure improvements, all of which contribute to longer and healthier lives for their citizens. Moreover, higher income levels enable individuals to access quality healthcare, nutritious food, and sanitation facilities, further bolstering life expectancy. This correlation underscores the importance of addressing economic disparities and investing in equitable development strategies to improve health outcomes globally.
+
+### Bar Chart: Population by Country (2020)
+
+```{r}
+#| echo:false 
+
+data_2020 <- subset(data, year == 2020)
+#data_2020 <-  data_2020[order( -Population..total),]
+
+ggplot(data_2020[1:35,], aes(x=reorder(country, -Population..total), y=Population..total)) +
+  geom_bar(stat="identity", fill="steelblue") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title="Population by Country in 2020", x="Country", y="Total Population")
+```
+
+## Some considerations:
+
+The **population distribution** in 2020 indeed reflects a tapestry of diversity among nations, with significant variations in demographic scales. At the heart of these differences lie a multitude of factors, including historical, cultural, economic, and geopolitical influences.
+
+### Map Visualization: GDP per Capita (2020)
+
+```{r}
+#| warning: false
+#| echo: false
+
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+world <- ne_countries(scale = "medium", returnclass = "sf")
+data_2020$country_code <- tolower(data_2020$alpha_3_code)
+
+world <- merge(world, data_2020, by.x = 'iso_a3', by.y = 'alpha_3_code', all.x = TRUE)
+
+ggplot() +
+  geom_sf(data = world, aes(fill = GDP.per.capita..constant.2015.US..)) +
+  scale_fill_viridis_c() +
+  labs(fill="GDP per Capita", title="GDP per Capita (2020) by Country") +
+  theme_minimal()
+```
+
+## Some considerations:
+
+The map visualization of GDP per capita highlights economic disparities, with wealthier nations shown in brighter colors. We notice a **higher level of poverty in South America, Africa and Asia.**
+
+### Bar Chart: Male and Female wasted and stunted in developing countries *(Obs. value = Height-for-age \<-2SD & Weight-for-height \>+2SD)*
+
+```{r}
+#| echo: false
+library(ggplot2)
+data_2 <- read.csv('unicef_indicator_2 (1).csv')
+data_2018 <- data_2[data_2$time_period %in% c(2018) & data_2$sex %in% c("Female", "Male"), ]
+
+
+#data_2018 <- subset(data_2, time_period == '2018')
+
+ggplot(data_2018, aes(x=reorder(country, -obs_value), y=obs_value, fill=sex)) +
+  geom_bar(stat="identity") +
+  labs(title="Health Indicators by Country in 2018", x="Country", y="Observed Value (%)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+## The situation in Afghaistan: Trends of Wasted and Stunted Children Over Time in Afghanistan
+
+```{r}
+#| echo: false
+afghanistan_data <- subset(data_2, country == 'Afghanistan')
+
+ggplot(afghanistan_data, aes(x=time_period, y=obs_value, color=indicator, group=interaction(indicator, sex))) +
+  geom_line() +
+  facet_wrap(~sex) +
+  labs(title="Trends of Health Indicators Over Time in Afghanistan", x="Year", y="Observed Value (%)")
+```
+
+## Some considerations:
+
+The graph shows a **positive trend in child health indicators in Afghanistan**. The rates of wasting and stunting (height-for-age \<-2SD & weight-for-height\>+2SD) appear to be decreasing between 2013 and 2018. This suggests that there may be **fewer children suffering from malnutrition**, also thanks to the **humanitarian helps from Unicef**.
+### Map Visualization: Global Distribution of a Specific Health Indicator (2018)
+
+### The evolution of deprivation over time
+
+```{r}
+#| warning: false
+#| echo: false
+
+library(RColorBrewer)
+data_U <- read.csv('unicef_indicator_1 (3).csv')
+
+data44 <- data_U[data_U$time_period %in% c(2000:2025) , ]
+
+# Choose a palette that fits your number of categories
+palette_name <- "YlOrRd"  # This is an example, choose based on your preference and number of categories
+
+
+ggplot(data44, aes(y=obs_value, x=time_period)) +
+  geom_bar(position="stack", stat="identity") +  # Scatter points with varying colors for different years
+  #geom_smooth(method=lm, se=FALSE, color="black") +  # Linear trend line without a confidence interval
+  labs(title="Deprivation over time",
+       y="Percentage children suffering at least three deprivation.",
+       x="Year") +
+  theme_minimal() + # Minimal theme for a clean look
+ #theme(legend.position = "none") +
+   scale_fill_brewer(palette=palette_name) +
+  theme(legend.position = "none") 
+
+```
+## Some considerations:
+
+The fact that the number of children suffering from at least three deprivations reached a peak in 2014 and is **now slowly decreasing** could be attributed to several factors:
+
+\-***Economic Recovery***
+
+\-***Investment in social services***
+
+\-***Increased Awareness and Advocacy***
+
+\-***Global Development Agenda:*** The global focus on sustainable development, as outlined in frameworks such as the United Nations' Sustainable Development Goals (SDGs), may have catalyzed efforts to address child deprivation as part of broader poverty reduction and social development strategies
+
+------------------------------------------------------------------------
